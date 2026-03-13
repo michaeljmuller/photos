@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
-import { JWT_SECRET } from "@/lib/auth";
+import { JWT_SECRET } from "@/lib/jwt";
 
 const PROTECTED_PATHS = ["/admin", "/api/upload", "/api/tags"];
 const PHOTO_SUBPATH_RE = /^\/api\/photos\/[^/]+\/(meta|tags)$/;
