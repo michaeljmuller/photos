@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
+import { JWT_SECRET } from "@/lib/jwt";
 
 const PROTECTED_PATHS = ["/admin", "/api/upload", "/api/tags"];
 const PHOTO_SUBPATH_RE = /^\/api\/photos\/[^/]+\/(meta|tags)$/;
@@ -18,32 +19,19 @@ export async function middleware(request: NextRequest) {
   // Allow login page through
   if (pathname.startsWith("/admin/login")) return NextResponse.next();
 
-  console.log("[middleware] checking auth for:", pathname);
-
   const token = request.cookies.get("bsa_session")?.value;
-  console.log("[middleware] token present:", !!token);
 
   if (!token) {
-    console.log("[middleware] no token, redirecting to login");
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     return NextResponse.redirect(new URL("/admin/login", request.url));
   }
 
-  const jwtSecretEnv = process.env.JWT_SECRET;
-  console.log("[middleware] JWT_SECRET env var present:", !!jwtSecretEnv);
-
-  const secret = new TextEncoder().encode(
-    jwtSecretEnv || "change-this-secret-32-chars-min!!"
-  );
-
   try {
-    await jwtVerify(token, secret);
-    console.log("[middleware] token verified ok");
+    await jwtVerify(token, JWT_SECRET);
     return NextResponse.next();
-  } catch (e) {
-    console.error("[middleware] token verification failed:", e);
+  } catch {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

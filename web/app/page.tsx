@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useCallback, Suspense } from "react";
+import { useState, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import { Photo, sortByDate } from "@/lib/types";
-import { useEffect } from "react";
 
 function GalleryContent() {
   const router = useRouter();
