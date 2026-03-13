@@ -18,23 +18,32 @@ export async function middleware(request: NextRequest) {
   // Allow login page through
   if (pathname.startsWith("/admin/login")) return NextResponse.next();
 
+  console.log("[middleware] checking auth for:", pathname);
+
   const token = request.cookies.get("bsa_session")?.value;
+  console.log("[middleware] token present:", !!token);
 
   if (!token) {
+    console.log("[middleware] no token, redirecting to login");
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     return NextResponse.redirect(new URL("/admin/login", request.url));
   }
 
+  const jwtSecretEnv = process.env.JWT_SECRET;
+  console.log("[middleware] JWT_SECRET env var present:", !!jwtSecretEnv);
+
   const secret = new TextEncoder().encode(
-    process.env.JWT_SECRET || "change-this-secret-32-chars-min!!"
+    jwtSecretEnv || "change-this-secret-32-chars-min!!"
   );
 
   try {
     await jwtVerify(token, secret);
+    console.log("[middleware] token verified ok");
     return NextResponse.next();
-  } catch {
+  } catch (e) {
+    console.error("[middleware] token verification failed:", e);
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
