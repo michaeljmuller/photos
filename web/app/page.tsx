@@ -1,14 +1,18 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import { Photo, sortByDate } from "@/lib/types";
+import { useEffect } from "react";
 
-export default function GalleryPage() {
+function GalleryContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
-  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [activeTag, setActiveTag] = useState<string | null>(() => searchParams.get("tag"));
   const [index, setIndex] = useState(-1);
   const [loading, setLoading] = useState(true);
 
@@ -22,6 +26,15 @@ export default function GalleryPage() {
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
+
+  const selectTag = useCallback((tag: string | null) => {
+    setActiveTag(tag);
+    if (tag) {
+      router.replace(`/?tag=${encodeURIComponent(tag)}`);
+    } else {
+      router.replace("/");
+    }
+  }, [router]);
 
   const visible = activeTag
     ? photos.filter((p) => p.tags.includes(activeTag))
@@ -49,7 +62,7 @@ export default function GalleryPage() {
         {allTags.length > 0 && (
           <>
             <button
-              onClick={() => setActiveTag(null)}
+              onClick={() => selectTag(null)}
               style={{
                 background: activeTag === null ? "#4a9eff" : "#1a1a1a",
                 color: activeTag === null ? "#fff" : "#aaa",
@@ -66,7 +79,7 @@ export default function GalleryPage() {
             {allTags.map((tag) => (
               <button
                 key={tag}
-                onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+                onClick={() => selectTag(activeTag === tag ? null : tag)}
                 style={{
                   background: activeTag === tag ? "#4a9eff" : "#1a1a1a",
                   color: activeTag === tag ? "#fff" : "#aaa",
@@ -107,5 +120,19 @@ export default function GalleryPage() {
         on={{ view: ({ index: i }) => setIndex(i) }}
       />
     </div>
+  );
+}
+
+export default function GalleryPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container" style={{ paddingTop: "4rem", textAlign: "center", color: "#666" }}>
+          Loading photos...
+        </div>
+      }
+    >
+      <GalleryContent />
+    </Suspense>
   );
 }
