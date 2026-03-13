@@ -21,15 +21,16 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN apk add --no-cache libheif && addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN apk add --no-cache libheif su-exec && addgroup -S appgroup && adduser -S appuser -G appgroup
 
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 RUN --mount=from=builder,source=/app/public,target=/tmp/public cp -r /tmp/public/. ./public 2>/dev/null || true
+COPY entrypoint.sh ./
+RUN chmod +x entrypoint.sh
 
-USER appuser
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+ENTRYPOINT ["./entrypoint.sh"]
