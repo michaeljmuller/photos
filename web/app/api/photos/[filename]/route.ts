@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import fs from "fs";
 import { deletePhoto } from "@/lib/db";
-
-const PHOTOS_DIR = process.env.PHOTOS_DIR || "./photos";
-const DATA_DIR = process.env.DATA_DIR || "./data";
+import { getPhotosDir, getThumbsDir } from "@/lib/photos";
 
 export async function GET(
   _request: NextRequest,
@@ -18,7 +16,7 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const filePath = path.join(PHOTOS_DIR, safe);
+  const filePath = path.join(getPhotosDir(), safe);
 
   if (!fs.existsSync(filePath)) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -46,13 +44,13 @@ export async function DELETE(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const filePath = path.join(PHOTOS_DIR, safe);
+  const filePath = path.join(getPhotosDir(), safe);
   if (!fs.existsSync(filePath)) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   fs.rmSync(filePath);
-  const thumbPath = path.join(DATA_DIR, "thumbs", safe.replace(/\.[^.]+$/, ".webp"));
+  const thumbPath = path.join(getThumbsDir(), safe.replace(/\.[^.]+$/, ".webp"));
   if (fs.existsSync(thumbPath)) fs.rmSync(thumbPath);
   deletePhoto(safe);
 

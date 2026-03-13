@@ -2,7 +2,7 @@ import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 
-const JWT_SECRET = new TextEncoder().encode(
+export const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "change-this-secret-32-chars-min!!"
 );
 

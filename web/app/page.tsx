@@ -3,14 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
-
-interface Photo {
-  filename: string;
-  lat: number | null;
-  lng: number | null;
-  artist: string | null;
-  date: string | null;
-}
+import { Photo, sortByDate } from "@/lib/types";
 
 export default function GalleryPage() {
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -21,13 +14,7 @@ export default function GalleryPage() {
     fetch("/api/photos")
       .then((r) => r.json())
       .then((data) => {
-        const sorted = (Array.isArray(data) ? data : []).sort((a: Photo, b: Photo) => {
-          if (!a.date && !b.date) return 0;
-          if (!a.date) return 1;
-          if (!b.date) return -1;
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
-        });
-        setPhotos(sorted);
+        setPhotos(sortByDate(Array.isArray(data) ? data : []));
         setLoading(false);
       })
       .catch(() => setLoading(false));

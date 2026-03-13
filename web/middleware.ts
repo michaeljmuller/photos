@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
-
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "change-this-secret-32-chars-min!!"
-);
+import { JWT_SECRET } from "@/lib/auth";
 
 const PROTECTED_PATHS = ["/admin", "/api/upload", "/api/tags"];
 const PHOTO_SUBPATH_RE = /^\/api\/photos\/[^/]+\/(meta|tags)$/;

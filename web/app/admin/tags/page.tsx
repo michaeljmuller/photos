@@ -1,11 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, KeyboardEvent } from "react";
-
-interface Photo {
-  filename: string;
-  tags: string[];
-}
+import { Photo } from "@/lib/types";
 
 export default function TagsAdminPage() {
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -35,12 +31,14 @@ export default function TagsAdminPage() {
     const hasTag = photo.tags.includes(tag);
     const newTags = hasTag ? photo.tags.filter((t) => t !== tag) : [...photo.tags, tag];
     setSaving((s) => ({ ...s, [photo.filename]: true }));
-    await fetch(`/api/photos/${encodeURIComponent(photo.filename)}/tags`, {
+    const res = await fetch(`/api/photos/${encodeURIComponent(photo.filename)}/tags`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tags: newTags }),
     });
-    setPhotos((prev) => prev.map((p) => p.filename === photo.filename ? { ...p, tags: newTags } : p));
+    if (res.ok) {
+      setPhotos((prev) => prev.map((p) => p.filename === photo.filename ? { ...p, tags: newTags } : p));
+    }
     setSaving((s) => ({ ...s, [photo.filename]: false }));
   }
 
@@ -66,26 +64,30 @@ export default function TagsAdminPage() {
       setRenameError(`"${newName}" already exists`);
       return;
     }
-    await fetch(`/api/tags/${encodeURIComponent(oldTag)}`, {
+    const res = await fetch(`/api/tags/${encodeURIComponent(oldTag)}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: newName }),
     });
-    setAllTags((prev) => prev.map((t) => t === oldTag ? newName : t).sort());
-    setPhotos((prev) => prev.map((p) => ({
-      ...p,
-      tags: p.tags.map((t) => t === oldTag ? newName : t),
-    })));
-    if (selectedTag === oldTag) setSelectedTag(newName);
+    if (res.ok) {
+      setAllTags((prev) => prev.map((t) => t === oldTag ? newName : t).sort());
+      setPhotos((prev) => prev.map((p) => ({
+        ...p,
+        tags: p.tags.map((t) => t === oldTag ? newName : t),
+      })));
+      if (selectedTag === oldTag) setSelectedTag(newName);
+    }
     setRenamingTag(null);
     setRenameError("");
   }
 
   async function doDeleteTag(tag: string) {
-    await fetch(`/api/tags/${encodeURIComponent(tag)}`, { method: "DELETE" });
-    setAllTags((prev) => prev.filter((t) => t !== tag));
-    setPhotos((prev) => prev.map((p) => ({ ...p, tags: p.tags.filter((t) => t !== tag) })));
-    if (selectedTag === tag) setSelectedTag(null);
+    const res = await fetch(`/api/tags/${encodeURIComponent(tag)}`, { method: "DELETE" });
+    if (res.ok) {
+      setAllTags((prev) => prev.filter((t) => t !== tag));
+      setPhotos((prev) => prev.map((p) => ({ ...p, tags: p.tags.filter((t) => t !== tag) })));
+      if (selectedTag === tag) setSelectedTag(null);
+    }
     setConfirmDeleteTag(null);
   }
 

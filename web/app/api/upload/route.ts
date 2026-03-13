@@ -2,10 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import fs from "fs";
 import sharp from "sharp";
-import { extractExif } from "@/lib/photos";
+import { extractExif, getPhotosDir, EXIF_ORIENTATION_DEGREES } from "@/lib/photos";
 import { upsertPhoto } from "@/lib/db";
-
-const PHOTOS_DIR = process.env.PHOTOS_DIR || "./photos";
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,32 +19,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Only PNG, JPEG, and HEIC files are allowed" }, { status: 400 });
     }
 
-    // Ensure photos dir exists
-    fs.mkdirSync(PHOTOS_DIR, { recursive: true });
+    const photosDir = getPhotosDir();
+    fs.mkdirSync(photosDir, { recursive: true });
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const isHeic = /\.(heic|heif)$/i.test(originalName);
 
     let filename: string;
-    let destPath: string;
     let finalBuffer: Buffer;
 
     if (isHeic) {
       filename = path.basename(originalName).replace(/\.(heic|heif)$/i, ".png");
-      destPath = path.join(PHOTOS_DIR, filename);
-
-      // exifr reliably reads HEIC orientation; sharp's auto-rotate is not
-      // consistent with libheif on Alpine, so we pass the angle explicitly.
-      const orientationDegrees: Record<number, number> = { 1: 0, 3: 180, 6: 90, 8: 270 };
+      // Sharp's auto-rotate is unreliable on Alpine Linux; pass the angle explicitly.
       const heicMeta = await sharp(buffer).metadata();
-      const heicRotate = orientationDegrees[heicMeta.orientation ?? 1] ?? 0;
-      finalBuffer = await sharp(buffer).rotate(heicRotate).png().toBuffer();
+      const rotateDeg = EXIF_ORIENTATION_DEGREES[heicMeta.orientation ?? 1] ?? 0;
+      finalBuffer = await sharp(buffer).rotate(rotateDeg).png().toBuffer();
     } else {
       filename = path.basename(originalName);
-      destPath = path.join(PHOTOS_DIR, filename);
       finalBuffer = buffer;
     }
 
+    const destPath = path.join(photosDir, filename);
     fs.writeFileSync(destPath, finalBuffer);
 
     const { lat, lng, date } = await extractExif(isHeic ? buffer : destPath);

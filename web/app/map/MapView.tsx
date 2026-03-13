@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import { Photo } from "@/lib/types";
 
 // Fix default icon paths for webpack
 const icon = L.icon({
@@ -15,14 +16,6 @@ const icon = L.icon({
   popupAnchor: [1, -34],
   shadowSize: [41, 41],
 });
-
-interface Photo {
-  filename: string;
-  lat: number | null;
-  lng: number | null;
-  artist: string | null;
-  date: string | null;
-}
 
 function FitBounds({ photos }: { photos: Photo[] }) {
   const map = useMap();

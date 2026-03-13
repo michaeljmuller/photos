@@ -1,15 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, DragEvent, ChangeEvent, KeyboardEvent } from "react";
-
-interface Photo {
-  filename: string;
-  lat: number | null;
-  lng: number | null;
-  artist: string | null;
-  date: string | null;
-  tags: string[];
-}
+import { Photo, sortByDate } from "@/lib/types";
 
 export default function AdminPage() {
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -30,12 +22,7 @@ export default function AdminPage() {
     fetch("/api/photos")
       .then((r) => r.json())
       .then((data) => {
-        const list = (Array.isArray(data) ? data : []).sort((a: Photo, b: Photo) => {
-          if (!a.date && !b.date) return 0;
-          if (!a.date) return 1;
-          if (!b.date) return -1;
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
-        });
+        const list = sortByDate(Array.isArray(data) ? data : []);
         setPhotos(list);
         const artistInit: Record<string, string> = {};
         const tagInit: Record<string, string[]> = {};
@@ -120,9 +107,11 @@ export default function AdminPage() {
 
   async function deletePhoto(filename: string) {
     setDeleting((s) => ({ ...s, [filename]: true }));
-    await fetch(`/api/photos/${encodeURIComponent(filename)}`, { method: "DELETE" });
-    setPhotos((prev) => prev.filter((p) => p.filename !== filename));
-    setConfirmDelete(null);
+    const res = await fetch(`/api/photos/${encodeURIComponent(filename)}`, { method: "DELETE" });
+    if (res.ok) {
+      setPhotos((prev) => prev.filter((p) => p.filename !== filename));
+      setConfirmDelete(null);
+    }
     setDeleting((s) => ({ ...s, [filename]: false }));
   }
 
@@ -130,12 +119,14 @@ export default function AdminPage() {
     const artist = artistEdits[filename] ?? "";
     const tags = tagEdits[filename] || [];
     setSaving((s) => ({ ...s, [filename]: true }));
-    await fetch(`/api/photos/${encodeURIComponent(filename)}/meta`, {
+    const res = await fetch(`/api/photos/${encodeURIComponent(filename)}/meta`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ artist, tags }),
     });
-    setSaved((s) => ({ ...s, [filename]: { artist, tags } }));
+    if (res.ok) {
+      setSaved((s) => ({ ...s, [filename]: { artist, tags } }));
+    }
     setSaving((s) => ({ ...s, [filename]: false }));
   }
 

@@ -3,6 +3,10 @@ import fs from "fs";
 import { upsertPhoto, getKnownFilenames } from "./db";
 
 const PHOTOS_DIR = process.env.PHOTOS_DIR || "./photos";
+
+// Maps EXIF orientation tag values to explicit rotation degrees.
+// Sharp's auto-rotate is unreliable on Alpine Linux (musl libc).
+export const EXIF_ORIENTATION_DEGREES: Record<number, number> = { 1: 0, 3: 180, 6: 90, 8: 270 };
 const DATA_DIR = process.env.DATA_DIR || "./data";
 const THUMBS_DIR = path.join(DATA_DIR, "thumbs");
 
@@ -85,9 +89,8 @@ export async function generateThumbnail(filename: string): Promise<Buffer> {
     return fs.readFileSync(thumbPath);
   }
 
-  const orientationDegrees: Record<number, number> = { 1: 0, 3: 180, 6: 90, 8: 270 };
   const meta = await sharp(sourcePath).metadata();
-  const rotateDeg = orientationDegrees[meta.orientation ?? 1] ?? 0;
+  const rotateDeg = EXIF_ORIENTATION_DEGREES[meta.orientation ?? 1] ?? 0;
 
   const buffer = await sharp(sourcePath)
     .rotate(rotateDeg)
