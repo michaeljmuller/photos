@@ -1,0 +1,6 @@
+data/
+photos/
+web/node_modules/
+web/.next/
+**/.DS_Store
+.env
