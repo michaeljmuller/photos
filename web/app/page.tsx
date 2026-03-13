@@ -7,20 +7,27 @@ import { Photo, sortByDate } from "@/lib/types";
 
 export default function GalleryPage() {
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [allTags, setAllTags] = useState<string[]>([]);
+  const [activeTag, setActiveTag] = useState<string | null>(null);
   const [index, setIndex] = useState(-1);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/photos")
-      .then((r) => r.json())
-      .then((data) => {
-        setPhotos(sortByDate(Array.isArray(data) ? data : []));
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    Promise.all([
+      fetch("/api/photos").then((r) => r.json()),
+      fetch("/api/tags").then((r) => r.json()),
+    ]).then(([photoData, tagData]) => {
+      setPhotos(sortByDate(Array.isArray(photoData) ? photoData : []));
+      setAllTags(Array.isArray(tagData) ? tagData : []);
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, []);
 
-  const slides = photos.map((p) => ({
+  const visible = activeTag
+    ? photos.filter((p) => p.tags.includes(activeTag))
+    : photos;
+
+  const slides = visible.map((p) => ({
     src: `/api/photos/${encodeURIComponent(p.filename)}`,
     alt: p.filename,
   }));
@@ -37,11 +44,49 @@ export default function GalleryPage() {
 
   return (
     <div className="container">
-      <div style={{ padding: "1rem 0" }}>
-        <span style={{ color: "#666", fontSize: "0.85rem" }}>{photos.length} photos</span>
+      <div style={{ padding: "1rem 0", display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+        <span style={{ color: "#666", fontSize: "0.85rem", marginRight: "0.5rem" }}>{visible.length} photos</span>
+        {allTags.length > 0 && (
+          <>
+            <button
+              onClick={() => setActiveTag(null)}
+              style={{
+                background: activeTag === null ? "#4a9eff" : "#1a1a1a",
+                color: activeTag === null ? "#fff" : "#aaa",
+                border: "1px solid",
+                borderColor: activeTag === null ? "#4a9eff" : "#333",
+                borderRadius: "999px",
+                padding: "2px 12px",
+                fontSize: "0.8rem",
+                cursor: "pointer",
+              }}
+            >
+              All
+            </button>
+            {allTags.map((tag) => (
+              <button
+                key={tag}
+                onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+                style={{
+                  background: activeTag === tag ? "#4a9eff" : "#1a1a1a",
+                  color: activeTag === tag ? "#fff" : "#aaa",
+                  border: "1px solid",
+                  borderColor: activeTag === tag ? "#4a9eff" : "#333",
+                  borderRadius: "999px",
+                  padding: "2px 12px",
+                  fontSize: "0.8rem",
+                  cursor: "pointer",
+                }}
+              >
+                {tag}
+              </button>
+            ))}
+          </>
+        )}
       </div>
+
       <div className="gallery-grid">
-        {photos.map((photo, i) => (
+        {visible.map((photo, i) => (
           <div key={photo.filename} className="gallery-item" onClick={() => open(i)}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img

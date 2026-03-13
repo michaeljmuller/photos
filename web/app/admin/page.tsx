@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, DragEvent, ChangeEvent, KeyboardEvent } from "react";
+import { useState, useEffect, useRef, useCallback, DragEvent, ChangeEvent } from "react";
 import { Photo, sortByDate } from "@/lib/types";
 
 export default function AdminPage() {
@@ -10,9 +10,7 @@ export default function AdminPage() {
   const [dragActive, setDragActive] = useState(false);
   const [uploadMsg, setUploadMsg] = useState("");
   const [artistEdits, setArtistEdits] = useState<Record<string, string>>({});
-  const [tagEdits, setTagEdits] = useState<Record<string, string[]>>({});
-  const [tagInputs, setTagInputs] = useState<Record<string, string>>({});
-  const [saved, setSaved] = useState<Record<string, { artist: string; tags: string[] }>>({});
+  const [saved, setSaved] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [deleting, setDeleting] = useState<Record<string, boolean>>({});
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -25,15 +23,12 @@ export default function AdminPage() {
         const list = sortByDate(Array.isArray(data) ? data : []);
         setPhotos(list);
         const artistInit: Record<string, string> = {};
-        const tagInit: Record<string, string[]> = {};
-        const savedInit: Record<string, { artist: string; tags: string[] }> = {};
+        const savedInit: Record<string, string> = {};
         list.forEach((p: Photo) => {
           artistInit[p.filename] = p.artist || "";
-          tagInit[p.filename] = p.tags || [];
-          savedInit[p.filename] = { artist: p.artist || "", tags: p.tags || [] };
+          savedInit[p.filename] = p.artist || "";
         });
         setArtistEdits(artistInit);
-        setTagEdits(tagInit);
         setSaved(savedInit);
         setLoading(false);
       })
@@ -65,44 +60,16 @@ export default function AdminPage() {
   function handleDrop(e: DragEvent<HTMLDivElement>) {
     e.preventDefault();
     setDragActive(false);
-    const files = Array.from(e.dataTransfer.files);
-    files.forEach(uploadFile);
+    Array.from(e.dataTransfer.files).forEach(uploadFile);
   }
 
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files || []);
-    files.forEach(uploadFile);
+    Array.from(e.target.files || []).forEach(uploadFile);
     e.target.value = "";
   }
 
-  function addTag(filename: string) {
-    const input = (tagInputs[filename] || "").trim();
-    if (!input) return;
-    const current = tagEdits[filename] || [];
-    if (current.includes(input)) return;
-    setTagEdits((prev) => ({ ...prev, [filename]: [...current, input] }));
-    setTagInputs((prev) => ({ ...prev, [filename]: "" }));
-  }
-
-  function removeTag(filename: string, tag: string) {
-    setTagEdits((prev) => ({
-      ...prev,
-      [filename]: (prev[filename] || []).filter((t) => t !== tag),
-    }));
-  }
-
-  function handleTagKeyDown(e: KeyboardEvent<HTMLInputElement>, filename: string) {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      addTag(filename);
-    }
-  }
-
   function hasChanges(filename: string) {
-    const base = saved[filename];
-    if (!base) return false;
-    const tagsChanged = JSON.stringify(base.tags) !== JSON.stringify(tagEdits[filename] || []);
-    return base.artist !== (artistEdits[filename] ?? "") || tagsChanged;
+    return saved[filename] !== (artistEdits[filename] ?? "");
   }
 
   async function deletePhoto(filename: string) {
@@ -117,15 +84,14 @@ export default function AdminPage() {
 
   async function saveMeta(filename: string) {
     const artist = artistEdits[filename] ?? "";
-    const tags = tagEdits[filename] || [];
     setSaving((s) => ({ ...s, [filename]: true }));
     const res = await fetch(`/api/photos/${encodeURIComponent(filename)}/meta`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ artist, tags }),
+      body: JSON.stringify({ artist, tags: photos.find((p) => p.filename === filename)?.tags ?? [] }),
     });
     if (res.ok) {
-      setSaved((s) => ({ ...s, [filename]: { artist, tags } }));
+      setSaved((s) => ({ ...s, [filename]: artist }));
     }
     setSaving((s) => ({ ...s, [filename]: false }));
   }
@@ -181,7 +147,6 @@ export default function AdminPage() {
             <th>GPS</th>
             <th>Date</th>
             <th>Artist</th>
-            <th>Tags</th>
             <th></th>
           </tr>
         </thead>
@@ -211,29 +176,6 @@ export default function AdminPage() {
                   }
                   placeholder="Artist name"
                   onKeyDown={(e) => e.key === "Enter" && saveMeta(photo.filename)}
-                />
-              </td>
-              <td style={{ minWidth: "160px" }}>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginBottom: "4px" }}>
-                  {(tagEdits[photo.filename] || []).map((tag) => (
-                    <span key={tag} style={{ display: "inline-flex", alignItems: "center", gap: "3px", background: "#333", color: "#ccc", borderRadius: "4px", padding: "2px 6px", fontSize: "0.75rem" }}>
-                      {tag}
-                      <button
-                        onClick={() => removeTag(photo.filename, tag)}
-                        style={{ background: "none", border: "none", color: "#999", cursor: "pointer", padding: 0, lineHeight: 1, fontSize: "0.85rem" }}
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-                <input
-                  type="text"
-                  value={tagInputs[photo.filename] || ""}
-                  onChange={(e) => setTagInputs((prev) => ({ ...prev, [photo.filename]: e.target.value }))}
-                  onKeyDown={(e) => handleTagKeyDown(e, photo.filename)}
-                  onBlur={() => addTag(photo.filename)}
-                  placeholder="Add tag…"
                 />
               </td>
               <td style={{ whiteSpace: "nowrap" }}>
