@@ -39,6 +39,8 @@ export async function middleware(request: NextRequest) {
   }
 }
 
+export const runtime = "nodejs";
+
 export const config = {
   matcher: ["/admin/:path*", "/api/upload", "/api/tags/:path*", "/api/photos/:filename", "/api/photos/:path*/meta", "/api/photos/:path*/tags"],
 };
