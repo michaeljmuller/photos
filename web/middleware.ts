@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
-import { JWT_SECRET } from "@/lib/jwt";
 
 const PROTECTED_PATHS = ["/admin", "/api/upload", "/api/tags"];
 const PHOTO_SUBPATH_RE = /^\/api\/photos\/[^/]+\/(meta|tags)$/;
@@ -28,8 +27,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/admin/login", request.url));
   }
 
+  const secret = new TextEncoder().encode(
+    process.env.JWT_SECRET || "change-this-secret-32-chars-min!!"
+  );
+
   try {
-    await jwtVerify(token, JWT_SECRET);
+    await jwtVerify(token, secret);
     return NextResponse.next();
   } catch {
     if (pathname.startsWith("/api/")) {
@@ -38,8 +41,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/admin/login", request.url));
   }
 }
-
-export const runtime = "nodejs";
 
 export const config = {
   matcher: ["/admin/:path*", "/api/upload", "/api/tags/:path*", "/api/photos/:filename", "/api/photos/:path*/meta", "/api/photos/:path*/tags"],
