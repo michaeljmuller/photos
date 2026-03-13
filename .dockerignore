@@ -2,5 +2,6 @@ data/
 photos/
 web/node_modules/
 web/.next/
+tests/node_modules/
 **/.DS_Store
 .env

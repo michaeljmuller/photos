@@ -1,6 +1,9 @@
 # Stage 1: Install dependencies
 FROM node:22-alpine AS deps
 WORKDIR /app
+# Build tools required to compile native modules (better-sqlite3, sharp)
+# when prebuilt binaries are unavailable for the target platform.
+RUN apk add --no-cache python3 make g++
 COPY web/package*.json ./
 RUN npm install --legacy-peer-deps
 

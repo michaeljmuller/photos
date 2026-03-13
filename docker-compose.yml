@@ -8,3 +8,10 @@ services:
       - ./data:/data
     env_file: .env
     restart: unless-stopped
+
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    profiles:
+      - test
